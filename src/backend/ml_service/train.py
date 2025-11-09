@@ -8,16 +8,17 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 import warnings
 from loguru import logger
 
-from ml.embeddings import Embedder
-from ml.features import build_behavioral_features, build_temporal_features, assemble_feature_matrix
-from ml.preprocess import clean_text
-from config import settings
+from .ml.embeddings import Embedder
+from .ml.features import build_behavioral_features, build_temporal_features, assemble_feature_matrix
+from .ml.preprocess import clean_text
+from .config import settings
 
 # Suppress specific warnings from sklearn
 warnings.filterwarnings("ignore", category=UserWarning, module='sklearn.feature_extraction.text')
 
-# Define paths
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+# Define paths relative to this script's location
+_CURRENT_DIR = os.path.dirname(__file__)
+DATA_DIR = os.path.join(_CURRENT_DIR, "data")
 MODELS_DIR = settings.MODELS_DIR
 DATA_PATH = os.path.join(DATA_DIR, "sample_reviews.csv")
 EMBEDDER_PATH = os.path.join(MODELS_DIR, "embedder.joblib")
@@ -107,7 +108,7 @@ def train_model():
     joblib.dump(clf, CLF_PATH)
 
     logger.success("Training complete. Model artifacts have been saved to the 'models' directory.")
-    logger.info("You can now start the FastAPI service with 'uvicorn app:app --reload --port 5001'.")
+    logger.info("You can now start the FastAPI service with 'uvicorn src.backend.ml_service.app:app --reload --port 5001'.")
 
 if __name__ == "__main__":
     # Ensure the models directory exists before training

@@ -44,10 +44,7 @@ npm install
 
 You will need a second terminal for this step.
 
-1.  **Navigate to the Service Directory**: In a new terminal, navigate to the Python service directory.
-    ```bash
-    cd src/backend/ml_service
-    ```
+1.  **Navigate to the Project Root**: In a new terminal, ensure you are in the root directory of the project.
 
 2.  **Create a Virtual Environment (Recommended)**: It's best practice to create a virtual environment to manage Python dependencies.
     ```bash
@@ -66,29 +63,29 @@ You will need a second terminal for this step.
 
 4.  **Install Python Dependencies**: Install all the required Python packages using the `requirements.txt` file.
     ```bash
-    pip install -r requirements.txt
+    pip install -r src/backend/ml_service/requirements.txt
     ```
 
 ## Step 4: Train Your Custom ML Model
 
 Before running the service, you need to train your model. We have provided a sample dataset and a training script.
 
-1.  **Run the Training Script**: From the `src/backend/ml_service` directory (with your virtual environment still active), run the `train.py` script.
+1.  **Run the Training Script**: From the **root directory** of the project (with your virtual environment still active), run the training script as a module.
     ```bash
-    python train.py
+    python -m src.backend.ml_service.train
     ```
 
 2.  **Review the Output**: The script will load the `data/sample_reviews.csv`, train the models, show you evaluation metrics (like accuracy and a classification report), and save two files: `embedder.joblib` and `clf.joblib` into the `src/backend/ml_service/models/` directory.
 
-3.  **(Optional) Use Your Own Data**: To train on your own data, simply replace `data/sample_reviews.csv` with your own CSV file. Make sure it has the same format: a `text` column for the review and a `label` column with `genuine` or `fake` values.
+3.  **(Optional) Use Your Own Data**: To train on your own data, simply replace `src/backend/ml_service/data/sample_reviews.csv` with your own CSV file. Make sure it has the same format: a `text` column for the review and a `label` column with `genuine` or `fake` values.
 
 ## Step 5: Run the Python ML Service
 
 Now that you have your trained models, you can start the backend service.
 
-1.  **Run the ML Service**: In the same terminal (inside `src/backend/ml_service` with the virtual environment active), start the Uvicorn server.
+1.  **Run the ML Service**: In the same terminal (from the project root with the virtual environment active), start the Uvicorn server.
     ```bash
-    uvicorn app:app --reload --port 5001
+    uvicorn src.backend.ml_service.app:app --reload --port 5001
     ```
     Keep this terminal window open. The ML service is now running on `http://localhost:5001` and is ready to accept requests from the frontend.
 
