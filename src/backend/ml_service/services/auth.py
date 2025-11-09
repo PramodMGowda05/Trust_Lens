@@ -21,7 +21,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    # Bcrypt has a maximum password length of 72 bytes
+    # We truncate the password to avoid an error
+    return pwd_context.hash(password[:72])
 
 def get_user(email: str) -> UserInDB | None:
     if email in FAKE_USER_DB:
