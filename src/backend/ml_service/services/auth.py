@@ -3,6 +3,7 @@ from passlib.context import CryptContext
 from jose import jwt
 from ..config import settings
 from ..schemas import User, UserInDB
+import hashlib
 
 # For demo purposes, we'll use an in-memory "database"
 # In a real app, this would be a database connection (e.g., SQLAlchemy)
@@ -18,12 +19,16 @@ FAKE_USER_DB: dict[str, UserInDB] = {
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    # Pre-hash the password with SHA-256 before verification, same as during hashing
+    hashed_input = hashlib.sha256(plain_password.encode('utf-8')).hexdigest()
+    return pwd_context.verify(hashed_input, hashed_password)
 
 def get_password_hash(password: str) -> str:
-    # Bcrypt has a maximum password length of 72 bytes
-    # We truncate the password to avoid an error
-    return pwd_context.hash(password[:72])
+    # Bcrypt has a maximum password length of 72 bytes.
+    # To securely handle longer passwords, we first hash the password with a fast
+    # algorithm (SHA-256) and then pass the hex digest to bcrypt.
+    hashed_input = hashlib.sha256(password.encode('utf-8')).hexdigest()
+    return pwd_context.hash(hashed_input)
 
 def get_user(email: str) -> UserInDB | None:
     if email in FAKE_USER_DB:
