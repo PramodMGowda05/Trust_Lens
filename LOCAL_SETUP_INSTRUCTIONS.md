@@ -1,6 +1,6 @@
 # Local Setup Instructions for TrustLens
 
-This guide provides step-by-step instructions to run the full TrustLens application (both the Next.js frontend and the Python ML service) on your local machine.
+This guide provides step-by-step instructions to train your own model and run the full TrustLens application (both the Next.js frontend and the Python ML service) on your local machine.
 
 ## Prerequisites
 
@@ -28,7 +28,7 @@ The Python service uses the Google Cloud Translation API. You must configure you
         ```
     *   **Windows (PowerShell)**:
         ```powershell
-        $env:GOOGLE_APPLICATION_CREDENTIALS="C:\path\to\your\key.json"
+        $env:GOOGLE_APPLICATION_CREDENTIALS="C:\path\to/your/key.json"
         ```
     *Note: You may need to close and reopen your terminal for this change to take effect.*
 
@@ -40,7 +40,7 @@ Open a terminal, navigate to the root directory of the project, and run the foll
 npm install
 ```
 
-## Step 3: Set Up and Run the Python ML Backend
+## Step 3: Set Up the Python ML Backend
 
 You will need a second terminal for this step.
 
@@ -69,15 +69,30 @@ You will need a second terminal for this step.
     pip install -r requirements.txt
     ```
 
-5.  **Add Your Custom Models**: Place your trained `.joblib` or `.pkl` model files inside the `src/backend/ml_service/models/` directory. The application is configured to load `embedder.joblib` and `clf.joblib` by default. If your files have different names, you will need to update the `ModelBundle.load()` method in `src/backend/ml_service/ml/model.py`.
+## Step 4: Train Your Custom ML Model
 
-6.  **Run the ML Service**: Start the Uvicorn server to run the FastAPI application. It will run on `http://localhost:5001`.
+Before running the service, you need to train your model. We have provided a sample dataset and a training script.
+
+1.  **Run the Training Script**: From the `src/backend/ml_service` directory (with your virtual environment still active), run the `train.py` script.
+    ```bash
+    python train.py
+    ```
+
+2.  **Review the Output**: The script will load the `data/sample_reviews.csv`, train the models, show you evaluation metrics (like accuracy and a classification report), and save two files: `embedder.joblib` and `clf.joblib` into the `src/backend/ml_service/models/` directory.
+
+3.  **(Optional) Use Your Own Data**: To train on your own data, simply replace `data/sample_reviews.csv` with your own CSV file. Make sure it has the same format: a `text` column for the review and a `label` column with `genuine` or `fake` values.
+
+## Step 5: Run the Python ML Service
+
+Now that you have your trained models, you can start the backend service.
+
+1.  **Run the ML Service**: In the same terminal (inside `src/backend/ml_service` with the virtual environment active), start the Uvicorn server.
     ```bash
     uvicorn app:app --reload --port 5001
     ```
-    Keep this terminal window open. The ML service is now running and ready to accept requests from the frontend.
+    Keep this terminal window open. The ML service is now running on `http://localhost:5001` and is ready to accept requests from the frontend.
 
-## Step 4: Run the Next.js Frontend
+## Step 6: Run the Next.js Frontend
 
 Go back to your first terminal (at the project root). Run the following command to start the Next.js development server.
 
@@ -93,4 +108,4 @@ You should now have:
 1.  One terminal running the **Python ML Service** on port 5001.
 2.  Another terminal running the **Next.js Frontend** on port 9002.
 
-You can now open `http://localhost:9002` in your browser and use the application. The frontend will make API calls to the Python backend running on your machine.
+You can now open `http://localhost:9002` in your browser, sign up for a new account or log in as the admin (`admin@trustlens.com` / `password`), and use the application. The frontend will make API calls to the Python backend you are running locally.
