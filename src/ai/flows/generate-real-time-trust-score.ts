@@ -90,8 +90,10 @@ The model's prediction was:
 - Label: {{prediction.label}}
 - Trust Score: {{prediction.trust_score}}
 
-{{#if prediction.explanation}}
-- Key Factors (SHAP values): {{prediction.explanation}}
+{{#if prediction.explanation.shap}}
+- Key Factors (SHAP values): {{prediction.explanation.shap}}
+{{else}}
+{{! This block is empty, so nothing will be rendered if shap data is missing }}
 {{/if}}
 
 Based on the model's output, generate a concise, user-friendly explanation (2-3 sentences) of why the review was classified this way. Explain in simple terms, as if you were talking to a non-technical user. Do not mention SHAP values or the model itself. Frame the explanation from the perspective of an AI analysis. For example, "Our analysis suggests this review is likely [genuine/fake] because...".`,
