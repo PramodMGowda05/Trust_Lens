@@ -61,7 +61,7 @@ You will need a second terminal for this step.
         .\venv\Scripts\activate
         ```
 
-4.  **Install Python Dependencies**: Install all the required Python packages using the `requirements.txt` file.
+4.  **Install Python Dependencies**: Install all the required Python packages using the `requirements.txt` file. If you have already run this step before, it's a good practice to run it again to install any new dependencies.
     ```bash
     pip install -r src/backend/ml_service/requirements.txt
     ```
