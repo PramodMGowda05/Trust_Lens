@@ -8,7 +8,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 const GenerateRealTimeTrustScoreInputSchema = z.object({
   reviewText: z.string().describe('The text content of the review.'),
@@ -86,12 +86,15 @@ const generateRealTimeTrustScoreFlow = ai.defineFlow(
 
 Review: "{{reviewText}}"
 
-The model's raw prediction was:
+The model's prediction was:
 - Label: {{prediction.label}}
 - Trust Score: {{prediction.trust_score}}
-- Key Factors (SHAP values): {{prediction.explanation}}
 
-Based on the model's raw output, generate a concise, user-friendly explanation (2-3 sentences) of why the review was classified this way. Explain in simple terms, as if you were talking to a non-technical user. Do not mention SHAP values or the model itself. Frame the explanation from the perspective of an AI analysis. For example, "Our analysis suggests this review is likely [genuine/fake] because...".`,
+{{#if prediction.explanation}}
+- Key Factors (SHAP values): {{prediction.explanation}}
+{{/if}}
+
+Based on the model's output, generate a concise, user-friendly explanation (2-3 sentences) of why the review was classified this way. Explain in simple terms, as if you were talking to a non-technical user. Do not mention SHAP values or the model itself. Frame the explanation from the perspective of an AI analysis. For example, "Our analysis suggests this review is likely [genuine/fake] because...".`,
     });
 
     const { output } = await explanationPrompt({
