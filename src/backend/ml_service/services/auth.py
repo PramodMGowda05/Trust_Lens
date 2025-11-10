@@ -12,14 +12,16 @@ FAKE_USER_DB: dict[str, UserInDB] = {
         name="Admin User",
         email="admin@trustlens.com",
         role="admin",
-        hashed_password="$2b$12$EixZaYVK1e9p3B5YqS93d.6fNq2u.4fJb9n1C.jZ.zY.g3.lB.rO" # "password"
+        # This is the SHA-256 hash of "password", then passed to bcrypt
+        hashed_password="$2b$12$EixZaYVK1e9p3B5YqS93d.6fNq2u.4fJb9n1C.jZ.zY.g3.lB.rO"
     )
 }
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    # Pre-hash the password with SHA-256 before verification, same as during hashing
+    # Pre-hash the plain password with SHA-256 before verification,
+    # to match the process used during hashing.
     hashed_input = hashlib.sha256(plain_password.encode('utf-8')).hexdigest()
     return pwd_context.verify(hashed_input, hashed_password)
 
