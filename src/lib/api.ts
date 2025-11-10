@@ -4,9 +4,9 @@
 // to the Authorization header.
 
 import { getAuth } from "firebase/auth";
-import { app } from "@/lib/firebase";
+import { initializeFirebase } from "@/firebase";
 
-const auth = getAuth(app);
+const { auth } = initializeFirebase();
 
 const getApiUrl = () => {
     // In a real app, you'd use environment variables

@@ -10,7 +10,7 @@ import {
   updateProfile,
   type User as FirebaseUser,
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase'; // Ensure you have this file
+import { initializeFirebase } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 
 // --- Types ---
@@ -38,19 +38,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
+    const { auth } = initializeFirebase();
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
-                const tokenResult = await firebaseUser.getIdTokenResult();
-                const userRole = tokenResult.claims.role || 'user'; // Get role from custom claims
+                try {
+                    const tokenResult = await firebaseUser.getIdTokenResult(true); // Force refresh to get latest claims
+                    const userRole = tokenResult.claims.role || 'user'; // Get role from custom claims
 
-                setUser({
-                    uid: firebaseUser.uid,
-                    name: firebaseUser.displayName,
-                    email: firebaseUser.email,
-                    role: userRole,
-                });
+                    setUser({
+                        uid: firebaseUser.uid,
+                        name: firebaseUser.displayName,
+                        email: firebaseUser.email,
+                        role: userRole,
+                    });
+                } catch (error) {
+                    console.error("Error getting user token result:", error);
+                    // Handle error, maybe sign out user
+                    setUser(null);
+                }
             } else {
                 setUser(null);
             }
@@ -59,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Cleanup subscription on unmount
         return () => unsubscribe();
-    }, []);
+    }, [auth]);
 
     const mapFirebaseUser = async (firebaseUser: FirebaseUser): Promise<User> => {
         const tokenResult = await firebaseUser.getIdTokenResult(true); // Force refresh
@@ -83,8 +90,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName: name });
         // NOTE: In a real app, setting a custom claim like 'role' requires a backend (e.g., Cloud Function).
-        // For this demo, the role will default to 'user' on the client side.
-        // The admin role can be set manually in the Firebase console for the demo user.
+        // The admin role can be set manually in the Firebase console for a demo user.
+        // After signup, the user will have a 'user' role by default.
         const mappedUser = await mapFirebaseUser(userCredential.user);
         setUser(mappedUser);
         return mappedUser;
