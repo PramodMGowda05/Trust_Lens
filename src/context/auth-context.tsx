@@ -3,15 +3,15 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  onAuthStateChanged,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  updateProfile,
-  type User as FirebaseUser,
-  type Auth,
+    onAuthStateChanged,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    signOut,
+    updateProfile,
+    type User as FirebaseUser,
+    type Auth,
 } from 'firebase/auth';
-import { initializeFirebase } from '@/firebase';
+import { useFirebase } from '@/firebase'; // Use the hook from the provider
 import { Loader2 } from 'lucide-react';
 
 interface User {
@@ -35,30 +35,33 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [auth, setAuth] = useState<Auth | null>(null);
     const router = useRouter();
+    
+    // Get auth instance from the central FirebaseProvider
+    const { auth } = useFirebase();
 
     useEffect(() => {
-        const { auth: authInstance } = initializeFirebase();
-        setAuth(authInstance);
-
-        if (!authInstance) {
-            setIsLoading(false);
+        if (!auth) {
+            // This can happen briefly on initial load before FirebaseProvider initializes.
+            // We wait for the auth object to be available.
             return;
         }
 
-        const unsubscribe = onAuthStateChanged(authInstance, async (firebaseUser) => {
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
                 try {
-                    const tokenResult = await firebaseUser.getIdTokenResult(true);
+                    // Force refresh the token to get latest custom claims.
+                    const tokenResult = await firebaseUser.getIdTokenResult(true); 
                     const userRole = tokenResult.claims.role || 'user';
 
-                    setUser({
+                    const mappedUser = {
                         uid: firebaseUser.uid,
                         name: firebaseUser.displayName,
                         email: firebaseUser.email,
                         role: userRole,
-                    });
+                    };
+                    setUser(mappedUser);
+
                 } catch (error) {
                     console.error("Error getting user token result:", error);
                     setUser(null);
@@ -70,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [auth]); // Rerun effect if auth instance changes
 
     const mapFirebaseUser = async (firebaseUser: FirebaseUser): Promise<User> => {
         const tokenResult = await firebaseUser.getIdTokenResult(true);
@@ -95,18 +98,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!auth) throw new Error("Auth service not initialized.");
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName: name });
+        
         // After signup, Firebase doesn't immediately reflect the profile update in the user object.
-        // We will create the user object manually with the provided name for immediate UI consistency.
-        const newUser = {
+        // We will create the user object manually for immediate UI consistency.
+        const newUser: User = {
              uid: userCredential.user.uid,
              name: name,
              email: userCredential.user.email,
              role: 'user' // Default role on signup
         };
         setUser(newUser);
-        // We call mapFirebaseUser to ensure we get any other default claims, though role is main one
-        const mappedUser = await mapFirebaseUser(userCredential.user);
-        return mappedUser;
+        // We still call mapFirebaseUser to ensure we get any other default claims
+        return await mapFirebaseUser(userCredential.user);
     };
 
     const logout = async () => {

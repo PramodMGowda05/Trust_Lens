@@ -60,29 +60,20 @@ The application now uses **Firebase Authentication** and the **Google Cloud Tran
     *   You will be shown a `firebaseConfig` object. **Copy this object**.
 
 7.  **Add Firebase Config to Your Frontend**:
-    *   Create a new file in your project: `src/lib/firebase.ts`.
-    *   Paste the `firebaseConfig` object into this file and add the Firebase initialization code, like so:
+    *   The file `src/firebase/config.ts` should already exist. If not, create it.
+    *   Replace the contents of this file with your `firebaseConfig` object:
         ```typescript
-        // src/lib/firebase.ts
-        import { initializeApp, getApps } from "firebase/app";
-
-        const firebaseConfig = {
+        // src/firebase/config.ts
+        export const firebaseConfig = {
           // Paste your copied config object here
           apiKey: "AIza...",
           authDomain: "your-project.firebaseapp.com",
           projectId: "your-project-id",
           storageBucket: "your-project.appspot.com",
           messagingSenderId: "...",
-          appId: "1:..."
+          appId: "1:...",
+          measurementId: "G-..."
         };
-
-        // Initialize Firebase
-        let app;
-        if (!getApps().length) {
-          app = initializeApp(firebaseConfig);
-        }
-
-        export { app };
         ```
 
 ## Step 2: Install Frontend Dependencies
@@ -139,13 +130,15 @@ Your application is now running!
 *   Frontend is at: **http://localhost:9002**
 *   Backend is at: **http://localhost:5001**
 
-## Step 6: Create an Admin User (Optional)
+## Step 6: Create an Admin User
 
 The application has a protected `/admin` route. To create an admin user:
-1.  Sign up for a new account in the app.
+1.  Sign up for a new account in the app at `http://localhost:9002/signup`.
 2.  Go to the **Firebase Console** > **Authentication** > **Users** tab.
-3.  Find the user you just created. Click the three-dots menu on the right and select **"Edit user"**.
-4.  In the modal, click **"Add custom claim"**.
-5.  Set the claim key to `role` and the value to `admin`.
-6.  Click **Save**.
-7.  Log out and log back in. You should now have access to the admin dashboard.
+3.  Find the user you just created by their email.
+4.  Click the three-dots menu (⋮) on the right side of that user's row and select **"Edit user"**.
+5.  In the modal that appears, click the **"Add custom claim"** button.
+6.  Set the "Claim name" field to `role`.
+7.  Set the "Claim value" field to `admin`.
+8.  Click **Save**.
+9.  Log out of the application and log back in with the same user. You should now see the "Admin" link in the sidebar and be able to access the admin dashboard.
