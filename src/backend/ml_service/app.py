@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import predict, feedback, auth
+from .routers import predict, feedback
 from .config import settings
 import os
 
@@ -31,7 +31,7 @@ app.add_middleware(
 os.makedirs(settings.MODELS_DIR, exist_ok=True)
 
 # Include routers
-app.include_router(auth.router, tags=["Authentication"])
+# app.include_router(auth.router, tags=["Authentication"]) # No longer needed
 app.include_router(predict.router, prefix="/api/v1", tags=["Prediction"])
 app.include_router(feedback.router, prefix="/api/v1", tags=["Feedback"])
 

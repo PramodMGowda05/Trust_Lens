@@ -1,9 +1,12 @@
 'use client';
 
-// A wrapper for fetch that automatically adds the JWT token
+// A wrapper for fetch that automatically adds the Firebase ID token
 // to the Authorization header.
 
-import { getCookie } from 'cookies-next';
+import { getAuth } from "firebase/auth";
+import { app } from "@/lib/firebase";
+
+const auth = getAuth(app);
 
 const getApiUrl = () => {
     // In a real app, you'd use environment variables
@@ -20,9 +23,13 @@ export async function apiFetch(endpoint: string, options: FetchOptions = {}): Pr
     const headers = new Headers(fetchOptions.headers || {});
     
     if (includeAuth) {
-        const token = getCookie('auth_token');
-        if (token) {
+        const user = auth.currentUser;
+        if (user) {
+            const token = await user.getIdToken();
             headers.set('Authorization', `Bearer ${token}`);
+        } else {
+            // Optional: handle cases where user is not logged in but auth is required
+            // For now, we let the backend handle the missing token.
         }
     }
 

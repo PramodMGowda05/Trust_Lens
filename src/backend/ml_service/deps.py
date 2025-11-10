@@ -3,15 +3,25 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
-from pydantic import ValidationError
+from firebase_admin import auth, credentials
+import firebase_admin
 
 from .ml.model import ModelBundle
-from .schemas import TokenData, User
-from .services import auth as auth_service
+from .schemas import User
 from .config import settings
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+# --- Firebase Initialization ---
+# This should only run once.
+if not firebase_admin._apps:
+    # In a production environment, you might use credentials.ApplicationDefault()
+    # which relies on the GOOGLE_APPLICATION_CREDENTIALS env var.
+    # For simplicity in local dev, we check for the env var. If not set, app will fail to start.
+    # This is a reasonable trade-off for a demo app.
+    cred = credentials.ApplicationDefault()
+    firebase_admin.initialize_app(cred)
+
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token") # tokenUrl is not used by our app, but required by FastAPI
 
 @lru_cache(maxsize=1)
 def get_model_bundle() -> ModelBundle:
@@ -23,30 +33,35 @@ def get_model_bundle() -> ModelBundle:
 
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+    """
+    Dependency that verifies the Firebase ID token and returns the user data.
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        email: str | None = payload.get("sub")
-        if email is None:
-            raise credentials_exception
-        token_data = TokenData(email=email)
-    except (JWTError, ValidationError):
+        decoded_token = auth.verify_id_token(token)
+        # You can customize what you want in your user object
+        # The 'name' might not be available if not set in Firebase Auth
+        user = User(
+            email=decoded_token.get("email"),
+            name=decoded_token.get("name", decoded_token.get("email")), # Fallback to email for name
+            uid=decoded_token.get("uid"),
+            role=decoded_token.get("role", "user") # Custom claim for role
+        )
+        return user
+    except Exception as e:
+        # This catches expired tokens, invalid tokens, etc.
+        print(f"Firebase auth error: {e}")
         raise credentials_exception
-    
-    user = auth_service.get_user(email=token_data.email)
-    if user is None:
-        raise credentials_exception
-    return user
 
 
 async def get_current_active_user(
     current_user: Annotated[User, Depends(get_current_user)]
 ):
-    # In a real app, you'd check if the user is active
-    # if current_user.disabled:
-    #     raise HTTPException(status_code=400, detail="Inactive user")
+    # In a real app, you might check a 'disabled' flag in your own DB
+    # For Firebase, you can check the 'disabled' property on the user record
+    # but that requires another SDK call. We'll keep it simple here.
     return current_user

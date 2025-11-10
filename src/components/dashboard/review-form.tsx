@@ -29,7 +29,7 @@ type ReviewFormProps = {
 
 export function ReviewForm({ onAnalysisComplete, isAnalyzing, setIsAnalyzing }: ReviewFormProps) {
     const { toast } = useToast();
-    const { token } = useAuth();
+    const { getIdToken } = useAuth();
     
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -41,11 +41,12 @@ export function ReviewForm({ onAnalysisComplete, isAnalyzing, setIsAnalyzing }: 
     });
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
+        const token = await getIdToken();
         if (!token) {
             toast({
                 variant: 'destructive',
                 title: 'Authentication Error',
-                description: 'You must be logged in to analyze a review.',
+                description: 'You must be logged in to analyze a review. Please log in again.',
             });
             return;
         }
@@ -123,7 +124,7 @@ export function ReviewForm({ onAnalysisComplete, isAnalyzing, setIsAnalyzing }: 
                                             <FormControl>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Select a platform" />
-                                                </SelectTrigger>
+                                                </Trigger>
                                             </FormControl>
                                             <SelectContent>
                                                 <SelectItem value="amazon">Amazon</SelectItem>

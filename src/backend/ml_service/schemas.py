@@ -1,27 +1,14 @@
 from pydantic import BaseModel, Field, EmailStr
 from typing import Any
 
-# --- JWT & User Schemas ---
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-class TokenData(BaseModel):
-    email: str | None = None
-
+# --- User Schema ---
+# This represents the user data we get from a verified Firebase token
 class User(BaseModel):
-    name: str
+    uid: str
+    name: str | None = None
     email: EmailStr
     role: str = "user"
 
-class UserInDB(User):
-    hashed_password: str
-
-class UserCreate(BaseModel):
-    name: str
-    email: EmailStr
-    password: str
 
 # --- Prediction Schemas ---
 
