@@ -133,12 +133,12 @@ Your application is now running!
 ## Step 6: Create an Admin User
 
 The application has a protected `/admin` route. To create an admin user:
-1.  Sign up for a new account in the app at `http://localhost:9002/signup`.
+1.  Sign up for a new account in the app at `http://localhost:9002/signup` using the email `admin@trustlens.com` and a password of your choice.
 2.  Go to the **Firebase Console** > **Authentication** > **Users** tab.
-3.  Find the user you just created by their email.
+3.  Find the user you just created by their email (`admin@trustlens.com`).
 4.  Click the three-dots menu (⋮) on the right side of that user's row and select **"Edit user"**.
 5.  In the modal that appears, click the **"Add custom claim"** button.
 6.  Set the "Claim name" field to `role`.
 7.  Set the "Claim value" field to `admin`.
 8.  Click **Save**.
-9.  Log out of the application and log back in with the same user. You should now see the "Admin" link in the sidebar and be able to access the admin dashboard.
+9.  Log out of the application and log back in with the `admin@trustlens.com` user. You should now see the "Admin" link in the sidebar and be able to access the admin dashboard.
