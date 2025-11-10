@@ -1,0 +1,154 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the TrustView application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "username": {
+          "type": "string",
+          "description": "The username of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user.",
+          "format": "email"
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user (e.g., 'user', 'admin')."
+        }
+      },
+      "required": [
+        "id",
+        "username",
+        "email",
+        "role"
+      ]
+    },
+    "Review": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Review",
+      "type": "object",
+      "description": "Represents a review submitted by a user for analysis.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Review entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Review)"
+        },
+        "reviewText": {
+          "type": "string",
+          "description": "The text content of the review."
+        },
+        "productService": {
+          "type": "string",
+          "description": "The product or service the review is about."
+        },
+        "platform": {
+          "type": "string",
+          "description": "The platform where the review was posted (e.g., 'Amazon', 'Yelp')."
+        },
+        "language": {
+          "type": "string",
+          "description": "The language of the review."
+        },
+        "trustScore": {
+          "type": "number",
+          "description": "The trust score generated for the review."
+        },
+        "predictedLabel": {
+          "type": "string",
+          "description": "The predicted label (genuine/fake) for the review."
+        },
+        "analysisTimestamp": {
+          "type": "string",
+          "description": "The timestamp when the review analysis was performed.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "reviewText",
+        "productService",
+        "platform",
+        "language",
+        "trustScore",
+        "predictedLabel",
+        "analysisTimestamp"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Path-based ownership ensures only the user or an admin can access this data.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/reviews/{reviewId}",
+        "definition": {
+          "entityName": "Review",
+          "schema": {
+            "$ref": "#/backend/entities/Review"
+          },
+          "description": "Stores reviews submitted by each user.  Path-based ownership is enforced. This path ensures that each review is directly associated with its owner, enabling efficient and secure data retrieval and management.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who submitted the review."
+            },
+            {
+              "name": "reviewId",
+              "description": "The unique identifier of the review."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "adminRole",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Collection to store admin roles. Existence of a document with the user's ID grants admin privileges. Authorization relies solely on `request.auth.uid`.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user with admin role."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support the TrustView application's review analysis and user management features, prioritizing security, scalability, and ease of debugging. Authorization Independence is achieved by structuring data in a way that security rules can be applied without relying on hierarchical `get()` calls. User-owned reviews are placed under the `/users/{userId}/reviews/{reviewId}` path, making ownership explicit and enabling simple path-based security rules. This eliminates the need to traverse the data hierarchy to determine ownership or permissions.  The structure also allows straightforward `list` operations and satisfies the QAPs, as each collection's documents share the same security requirements, facilitated by structural segregation.  The use of dedicated user and review collections, and the path-based ownership model, minimizes rule complexity, enhancing debuggability and overall security posture."
+  }
+}
