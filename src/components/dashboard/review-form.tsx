@@ -18,7 +18,6 @@ import { doc, serverTimestamp } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
-
 const formSchema = z.object({
     reviewText: z.string().min(20, "Review text must be at least 20 characters.").max(5000),
     productOrService: z.string().min(2, "Product/Service is required.").max(50),
@@ -35,7 +34,7 @@ export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }:
     const { toast } = useToast();
     const { user, getIdToken } = useAuth();
     const firestore = useFirestore();
-    
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -54,7 +53,7 @@ export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }:
             });
             return;
         }
-        
+
         const token = await getIdToken();
         if (!token) {
             toast({
@@ -68,21 +67,20 @@ export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }:
         onAnalysisStart();
         try {
             const result = await generateRealTimeTrustScore(values, token);
-            
+
             const newHistoryItem: Omit<HistoryItem, 'id' | 'timestamp'> = {
               userId: user.uid,
               ...values,
               ...result,
-            }
-            
-            // Save to Firestore without blocking
+            };
+
             const docRef = doc(firestore, `users/${user.uid}/reviews`, new Date().toISOString());
             setDocumentNonBlocking(docRef, { ...newHistoryItem, timestamp: serverTimestamp() }, { merge: true });
 
             onAnalysisComplete({
                 ...newHistoryItem,
                 id: docRef.id,
-                timestamp: new Date() // for immediate UI update
+                timestamp: new Date()
             });
 
             form.reset();

@@ -9,16 +9,16 @@ import {
   signOut,
   updateProfile,
   type User as FirebaseUser,
+  type Auth,
 } from 'firebase/auth';
 import { initializeFirebase } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 
-// --- Types ---
 interface User {
     uid: string;
     name: string | null;
     email: string | null;
-    role: string; // Add role to our user model
+    role: string;
 }
 
 interface AuthContextType {
@@ -30,22 +30,23 @@ interface AuthContextType {
     getIdToken: () => Promise<string | null>;
 }
 
-// --- Context ---
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// --- Provider ---
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [auth, setAuth] = useState<Auth | null>(null);
     const router = useRouter();
-    const { auth } = initializeFirebase();
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        const { auth: authInstance } = initializeFirebase();
+        setAuth(authInstance);
+
+        const unsubscribe = onAuthStateChanged(authInstance, async (firebaseUser) => {
             if (firebaseUser) {
                 try {
-                    const tokenResult = await firebaseUser.getIdTokenResult(true); // Force refresh to get latest claims
-                    const userRole = tokenResult.claims.role || 'user'; // Get role from custom claims
+                    const tokenResult = await firebaseUser.getIdTokenResult(true);
+                    const userRole = tokenResult.claims.role || 'user';
 
                     setUser({
                         uid: firebaseUser.uid,
@@ -55,7 +56,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     });
                 } catch (error) {
                     console.error("Error getting user token result:", error);
-                    // Handle error, maybe sign out user
                     setUser(null);
                 }
             } else {
@@ -64,12 +64,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setIsLoading(false);
         });
 
-        // Cleanup subscription on unmount
         return () => unsubscribe();
-    }, [auth]);
+    }, []);
 
     const mapFirebaseUser = async (firebaseUser: FirebaseUser): Promise<User> => {
-        const tokenResult = await firebaseUser.getIdTokenResult(true); // Force refresh
+        const tokenResult = await firebaseUser.getIdTokenResult(true);
         const role = tokenResult.claims.role || 'user';
         return {
             uid: firebaseUser.uid,
@@ -80,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const login = async (email: string, password: string): Promise<User> => {
+        if (!auth) throw new Error("Auth service not initialized.");
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const mappedUser = await mapFirebaseUser(userCredential.user);
         setUser(mappedUser);
@@ -87,29 +87,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const signup = async (name: string, email: string, password: string): Promise<User> => {
+        if (!auth) throw new Error("Auth service not initialized.");
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName: name });
-        // NOTE: In a real app, setting a custom claim like 'role' requires a backend (e.g., Cloud Function).
-        // The admin role can be set manually in the Firebase console for a demo user.
-        // After signup, the user will have a 'user' role by default.
         const mappedUser = await mapFirebaseUser(userCredential.user);
         setUser(mappedUser);
         return mappedUser;
     };
 
     const logout = async () => {
+        if (!auth) throw new Error("Auth service not initialized.");
         await signOut(auth);
         setUser(null);
         router.push('/login');
     };
     
     const getIdToken = async (): Promise<string | null> => {
-        if (auth.currentUser) {
+        if (auth?.currentUser) {
             return auth.currentUser.getIdToken();
         }
         return null;
     };
-
 
     const value = { user, isLoading, login, signup, logout, getIdToken };
 
@@ -126,7 +124,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 }
 
-// --- Hook ---
 export function useAuth() {
     const context = useContext(AuthContext);
     if (context === undefined) {
