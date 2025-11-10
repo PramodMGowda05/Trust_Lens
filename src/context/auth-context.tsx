@@ -42,6 +42,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { auth: authInstance } = initializeFirebase();
         setAuth(authInstance);
 
+        if (!authInstance) {
+            setIsLoading(false);
+            return;
+        }
+
         const unsubscribe = onAuthStateChanged(authInstance, async (firebaseUser) => {
             if (firebaseUser) {
                 try {
@@ -90,8 +95,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!auth) throw new Error("Auth service not initialized.");
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName: name });
+        // After signup, Firebase doesn't immediately reflect the profile update in the user object.
+        // We will create the user object manually with the provided name for immediate UI consistency.
+        const newUser = {
+             uid: userCredential.user.uid,
+             name: name,
+             email: userCredential.user.email,
+             role: 'user' // Default role on signup
+        };
+        setUser(newUser);
+        // We call mapFirebaseUser to ensure we get any other default claims, though role is main one
         const mappedUser = await mapFirebaseUser(userCredential.user);
-        setUser(mappedUser);
         return mappedUser;
     };
 
