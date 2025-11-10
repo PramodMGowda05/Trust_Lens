@@ -13,7 +13,7 @@ import { Wand2, Loader2 } from "lucide-react";
 import { generateRealTimeTrustScore } from "@/ai/flows/generate-real-time-trust-score";
 import { useToast } from "@/hooks/use-toast";
 import type { HistoryItem } from '@/lib/types';
-import { useAuth } from "@/context/auth-context";
+import { useAuth } from '@/context/auth-context';
 import { doc, serverTimestamp } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
