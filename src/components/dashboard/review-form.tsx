@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -70,11 +71,16 @@ export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }:
 
             const newHistoryItem: Omit<HistoryItem, 'id' | 'timestamp'> = {
               userId: user.uid,
-              ...values,
-              ...result,
+              reviewText: values.reviewText,
+              productOrService: values.productOrService,
+              platform: values.platform,
+              trustScore: result.trustScore,
+              predictedLabel: result.predictedLabel,
+              explanation: result.explanation,
             };
 
-            const docRef = doc(firestore, `users/${user.uid}/reviews`, new Date().toISOString());
+            const docId = `${new Date().getTime()}-${Math.random().toString(36).substring(2, 9)}`;
+            const docRef = doc(firestore, `users/${user.uid}/reviews`, docId);
             setDocumentNonBlocking(docRef, { ...newHistoryItem, timestamp: serverTimestamp() }, { merge: true });
 
             onAnalysisComplete({
