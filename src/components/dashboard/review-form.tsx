@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,6 +24,7 @@ const formSchema = z.object({
     reviewText: z.string().min(20, "Review text must be at least 20 characters.").max(5000),
     productOrService: z.string().min(2, "Product/Service is required.").max(50),
     platform: z.string().min(1, "Please select a platform."),
+    language: z.string().optional(),
 });
 
 type ReviewFormProps = {
@@ -33,7 +35,7 @@ type ReviewFormProps = {
 
 export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }: ReviewFormProps) {
     const { toast } = useToast();
-    const { user, getIdToken } = useAuth();
+    const { user } = useAuth();
     const firestore = useFirestore();
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -42,6 +44,7 @@ export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }:
             reviewText: "",
             productOrService: "",
             platform: "",
+            language: "en",
         },
     });
 
@@ -55,19 +58,9 @@ export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }:
             return;
         }
 
-        const token = await getIdToken();
-        if (!token) {
-            toast({
-                variant: 'destructive',
-                title: 'Authentication Error',
-                description: 'Could not verify your session. Please log in again.',
-            });
-            return;
-        }
-
         onAnalysisStart();
         try {
-            const result = await generateRealTimeTrustScore(values, token);
+            const result = await generateRealTimeTrustScore(values);
 
             const newHistoryItem: Omit<HistoryItem, 'id' | 'timestamp'> = {
               userId: user.uid,
@@ -86,7 +79,7 @@ export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }:
             onAnalysisComplete({
                 ...newHistoryItem,
                 id: docRef.id,
-                timestamp: new Date()
+                timestamp: new Date() // Use local date for immediate UI update
             });
 
             form.reset();
@@ -152,7 +145,7 @@ export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }:
                                             <FormControl>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Select a platform" />
-                                                </Trigger>
+                                                </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
                                                 <SelectItem value="amazon">Amazon</SelectItem>
@@ -167,6 +160,32 @@ export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }:
                                 )}
                             />
                         </div>
+                         <FormField
+                            control={form.control}
+                            name="language"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Language of Review</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select a language" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="en">English</SelectItem>
+                                            <SelectItem value="es">Spanish</SelectItem>
+                                            <SelectItem value="fr">French</SelectItem>
+                                            <SelectItem value="de">German</SelectItem>
+                                            <SelectItem value="hi">Hindi</SelectItem>
+                                            <SelectItem value="kn">Kannada</SelectItem>
+                                            <SelectItem value="other">Other</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                         <Button type="submit" disabled={isAnalyzing} className="w-full sm:w-auto">
                             {isAnalyzing ? (
                                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analyzing...</>
