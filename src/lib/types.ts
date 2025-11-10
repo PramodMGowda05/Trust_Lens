@@ -1,3 +1,5 @@
+import type { Timestamp } from 'firebase/firestore';
+
 export type AnalysisResult = {
   trustScore: number;
   predictedLabel: 'genuine' | 'fake';
@@ -6,7 +8,8 @@ export type AnalysisResult = {
 
 export type HistoryItem = AnalysisResult & {
   id: string; 
-  timestamp: string;
+  userId: string;
+  timestamp: Timestamp | Date; // Allow Date for local display before Firestore sync
   productOrService: string;
   platform: string;
   reviewText: string;

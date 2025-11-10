@@ -14,6 +14,10 @@ import { generateRealTimeTrustScore } from "@/ai/flows/generate-real-time-trust-
 import { useToast } from "@/hooks/use-toast";
 import type { HistoryItem } from '@/lib/types';
 import { useAuth } from "@/context/auth-context";
+import { doc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+
 
 const formSchema = z.object({
     reviewText: z.string().min(20, "Review text must be at least 20 characters.").max(5000),
@@ -22,14 +26,15 @@ const formSchema = z.object({
 });
 
 type ReviewFormProps = {
-    onAnalysisComplete: (result: HistoryItem) => void;
+    onAnalysisStart: () => void;
+    onAnalysisComplete: (result: HistoryItem | null) => void;
     isAnalyzing: boolean;
-    setIsAnalyzing: (isAnalyzing: boolean) => void;
 };
 
-export function ReviewForm({ onAnalysisComplete, isAnalyzing, setIsAnalyzing }: ReviewFormProps) {
+export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }: ReviewFormProps) {
     const { toast } = useToast();
-    const { getIdToken } = useAuth();
+    const { user, getIdToken } = useAuth();
+    const firestore = useFirestore();
     
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -41,27 +46,47 @@ export function ReviewForm({ onAnalysisComplete, isAnalyzing, setIsAnalyzing }: 
     });
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
+        if (!user) {
+             toast({
+                variant: 'destructive',
+                title: 'Authentication Error',
+                description: 'You must be logged in to analyze a review.',
+            });
+            return;
+        }
+        
         const token = await getIdToken();
         if (!token) {
             toast({
                 variant: 'destructive',
                 title: 'Authentication Error',
-                description: 'You must be logged in to analyze a review. Please log in again.',
+                description: 'Could not verify your session. Please log in again.',
             });
             return;
         }
 
-        setIsAnalyzing(true);
+        onAnalysisStart();
         try {
             const result = await generateRealTimeTrustScore(values, token);
-            const newHistoryItem: HistoryItem = {
-              id: new Date().toISOString(), 
-              timestamp: new Date().toISOString(),
+            
+            const newHistoryItem: Omit<HistoryItem, 'id' | 'timestamp'> = {
+              userId: user.uid,
               ...values,
-              ...result
+              ...result,
             }
-            onAnalysisComplete(newHistoryItem);
+            
+            // Save to Firestore without blocking
+            const docRef = doc(firestore, `users/${user.uid}/reviews`, new Date().toISOString());
+            setDocumentNonBlocking(docRef, { ...newHistoryItem, timestamp: serverTimestamp() }, { merge: true });
+
+            onAnalysisComplete({
+                ...newHistoryItem,
+                id: docRef.id,
+                timestamp: new Date() // for immediate UI update
+            });
+
             form.reset();
+
         } catch (error) {
             console.error("Analysis failed:", error);
             const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.';
@@ -70,8 +95,7 @@ export function ReviewForm({ onAnalysisComplete, isAnalyzing, setIsAnalyzing }: 
                 title: 'Analysis Failed',
                 description: errorMessage,
             });
-        } finally {
-            setIsAnalyzing(false);
+            onAnalysisComplete(null);
         }
     }
 

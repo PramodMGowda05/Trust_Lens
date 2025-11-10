@@ -12,11 +12,18 @@ import { FileClock } from "lucide-react"
 type HistoryPanelProps = {
   history: HistoryItem[];
   onSelect: (item: HistoryItem) => void;
-  isAnalyzing: boolean;
   isLoading: boolean;
 };
 
-export function HistoryPanel({ history, onSelect, isAnalyzing, isLoading }: HistoryPanelProps) {
+export function HistoryPanel({ history, onSelect, isLoading }: HistoryPanelProps) {
+  
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return 'Just now';
+    // Check if it's a Firestore Timestamp and convert to Date
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return formatDistanceToNow(date, { addSuffix: true });
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -29,21 +36,21 @@ export function HistoryPanel({ history, onSelect, isAnalyzing, isLoading }: Hist
       <CardContent>
         <ScrollArea className="h-[450px]">
           <div className="space-y-4 pr-4">
-            {(isAnalyzing || isLoading) && Array.from({ length: 3 }).map((_, index) => (
-                <div key={index} className="flex items-center space-x-4 animate-pulse">
-                    <Skeleton className="h-12 w-12 rounded-lg" />
+            {isLoading && Array.from({ length: 5 }).map((_, index) => (
+                <div key={index} className="flex items-center space-x-4 animate-pulse p-3">
                     <div className="space-y-2 flex-1">
                         <Skeleton className="h-4 w-3/4" />
                         <Skeleton className="h-4 w-1/2" />
                     </div>
+                    <Skeleton className="h-5 w-16 rounded-full" />
                 </div>
             ))}
-            {!isLoading && !isAnalyzing && history.length === 0 && (
+            {!isLoading && history.length === 0 && (
                  <div className="text-center text-muted-foreground py-10">
                     No analyses yet. Submit a review to get started.
                 </div>
             )}
-            {!isLoading && history.length > 0 && history.map(item => (
+            {!isLoading && history.map(item => (
               <button
                 key={item.id}
                 onClick={() => onSelect(item)}
@@ -62,7 +69,7 @@ export function HistoryPanel({ history, onSelect, isAnalyzing, isLoading }: Hist
                             {item.predictedLabel === 'genuine' ? 'Genuine' : 'Fake'}
                         </Badge>
                         <p className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}
+                           {formatDate(item.timestamp)}
                         </p>
                     </div>
                 </div>
