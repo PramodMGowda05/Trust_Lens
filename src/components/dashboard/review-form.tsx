@@ -46,7 +46,7 @@ export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }:
             language: "en",
         },
     });
-    
+
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         if (!user) {
             toast({
@@ -62,7 +62,7 @@ export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }:
             const result = await generateRealTimeTrustScore(values);
 
             const reviewsCol = collection(firestore, `users/${user.uid}/reviews`);
-            const newDocRef = doc(reviewsCol); // Create a new doc with a random ID
+            const newDocRef = doc(reviewsCol);
 
             const newHistoryItem: Omit<HistoryItem, 'id' | 'timestamp'> = {
                 userId: user.uid,
@@ -79,7 +79,7 @@ export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }:
             onAnalysisComplete({
                 ...newHistoryItem,
                 id: newDocRef.id,
-                timestamp: new Date() // Use local date for immediate UI update
+                timestamp: new Date()
             });
 
             form.reset();
