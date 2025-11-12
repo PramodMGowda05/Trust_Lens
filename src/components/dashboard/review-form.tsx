@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -47,7 +46,7 @@ export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }:
             language: "en",
         },
     });
-
+    
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         if (!user) {
             toast({
@@ -171,7 +170,7 @@ export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }:
                                         <FormControl>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select a language" />
-                                            </Trigger>
+                                            </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
                                             <SelectItem value="en">English</SelectItem>
