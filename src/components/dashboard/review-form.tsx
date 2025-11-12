@@ -48,7 +48,7 @@ export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }:
         },
     });
 
-    async function onSubmit(values: z.infer<typeof formSchema>) {
+    const onSubmit = async (values: z.infer<typeof formSchema>) => {
         if (!user) {
              toast({
                 variant: 'destructive',
@@ -94,7 +94,7 @@ export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }:
             });
             onAnalysisComplete(null);
         }
-    }
+    };
 
     return (
         <Card>
