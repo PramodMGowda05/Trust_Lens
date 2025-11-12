@@ -16,7 +16,7 @@ import { generateRealTimeTrustScore } from "@/ai/flows/generate-real-time-trust-
 import { useToast } from "@/hooks/use-toast";
 import type { HistoryItem } from '@/lib/types';
 import { useAuth } from '@/context/auth-context';
-import { doc, serverTimestamp } from 'firebase/firestore';
+import { doc, serverTimestamp, collection } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
@@ -50,7 +50,7 @@ export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }:
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         if (!user) {
-             toast({
+            toast({
                 variant: 'destructive',
                 title: 'Authentication Error',
                 description: 'You must be logged in to analyze a review.',
@@ -62,23 +62,24 @@ export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }:
         try {
             const result = await generateRealTimeTrustScore(values);
 
-            const newHistoryItem: Omit<HistoryItem, 'id' | 'timestamp'> = {
-              userId: user.uid,
-              reviewText: values.reviewText,
-              productOrService: values.productOrService,
-              platform: values.platform,
-              trustScore: result.trustScore,
-              predictedLabel: result.predictedLabel,
-              explanation: result.explanation,
-            };
+            const reviewsCol = collection(firestore, `users/${user.uid}/reviews`);
+            const newDocRef = doc(reviewsCol); // Create a new doc with a random ID
 
-            const docId = `${new Date().getTime()}-${Math.random().toString(36).substring(2, 9)}`;
-            const docRef = doc(firestore, `users/${user.uid}/reviews`, docId);
-            setDocumentNonBlocking(docRef, { ...newHistoryItem, timestamp: serverTimestamp() }, { merge: true });
+            const newHistoryItem: Omit<HistoryItem, 'id' | 'timestamp'> = {
+                userId: user.uid,
+                reviewText: values.reviewText,
+                productOrService: values.productOrService,
+                platform: values.platform,
+                trustScore: result.trustScore,
+                predictedLabel: result.predictedLabel,
+                explanation: result.explanation,
+            };
+            
+            setDocumentNonBlocking(newDocRef, { ...newHistoryItem, timestamp: serverTimestamp() }, { merge: false });
 
             onAnalysisComplete({
                 ...newHistoryItem,
-                id: docRef.id,
+                id: newDocRef.id,
                 timestamp: new Date() // Use local date for immediate UI update
             });
 
@@ -95,7 +96,7 @@ export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }:
             onAnalysisComplete(null);
         }
     };
-
+    
     return (
         <Card>
             <CardHeader>
@@ -160,7 +161,7 @@ export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }:
                                 )}
                             />
                         </div>
-                         <FormField
+                        <FormField
                             control={form.control}
                             name="language"
                             render={({ field }) => (
