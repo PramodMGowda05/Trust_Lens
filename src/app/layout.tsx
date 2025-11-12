@@ -9,6 +9,7 @@ import { FirebaseClientProvider } from '@/firebase';
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('http://localhost:9002'),
   title: 'TrustLens',
   description: 'Fake Review Detection Analytics Platform',
 };
