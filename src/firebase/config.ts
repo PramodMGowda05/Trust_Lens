@@ -1,8 +1,10 @@
+// This file is safe to commit. It reads secrets from environment variables.
 export const firebaseConfig = {
-  "projectId": "studio-709951747-1e89b",
-  "appId": "1:926845549555:web:7782a6b565d64764aab086",
-  "apiKey": "AIzaSyBTb2e2kBE3zFzEG7zEMVIN6_GPYsdyDXg",
-  "authDomain": "studio-709951747-1e89b.firebaseapp.com",
-  "measurementId": "",
-  "messagingSenderId": "926845549555"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };

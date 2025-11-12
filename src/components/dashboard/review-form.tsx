@@ -170,7 +170,7 @@ export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }:
                                         <FormControl>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select a language" />
-                                            </SelectTrigger>
+                                            </Trigger>
                                         </FormControl>
                                         <SelectContent>
                                             <SelectItem value="en">English</SelectItem>
