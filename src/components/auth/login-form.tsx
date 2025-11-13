@@ -43,12 +43,8 @@ export function LoginForm() {
     setIsLoading(true);
     setError(null);
     try {
-      const user = await login(values.email, values.password);
-      if (user?.role === 'admin') {
-        router.push('/admin');
-      } else {
-        router.push('/dashboard');
-      }
+      await login(values.email, values.password);
+      router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : "An unexpected error occurred.");
     } finally {
@@ -75,7 +71,7 @@ export function LoginForm() {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input placeholder="admin@trustlens.com" {...field} />
+                  <Input placeholder="name@example.com" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

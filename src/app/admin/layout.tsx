@@ -19,14 +19,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         if (!user) {
             // If no user, redirect to login
             router.push('/login');
-        } else if (user.role !== 'admin') {
-            // If user is not admin, redirect to dashboard
-            router.push('/dashboard');
         }
     }, [user, isLoading, router]);
 
-    // Show a loader while checking auth state or if user is not yet confirmed as admin
-    if (isLoading || !user || user.role !== 'admin') {
+    // Show a loader while checking auth state
+    if (isLoading || !user) {
         return (
             <div className="flex h-screen w-full items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -34,7 +31,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         );
     }
     
-    // If user is confirmed admin, render the layout
+    // If user is logged in, render the layout
     return (
         <SidebarProvider open={isSidebarOpen} onOpenChange={setSidebarOpen}>
             <div className="flex min-h-screen bg-muted/40">

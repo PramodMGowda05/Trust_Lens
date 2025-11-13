@@ -11,13 +11,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wand2, Loader2 } from "lucide-react";
-import { generateRealTimeTrustScore } from "@/ai/flows/generate-real-time-trust-score";
 import { useToast } from "@/hooks/use-toast";
 import type { HistoryItem } from '@/lib/types';
 import { useAuth } from '@/context/auth-context';
-import { doc, serverTimestamp, collection } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const formSchema = z.object({
     reviewText: z.string().min(20, "Review text must be at least 20 characters.").max(5000),
@@ -35,7 +31,6 @@ type ReviewFormProps = {
 export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }: ReviewFormProps) {
     const { toast } = useToast();
     const { user } = useAuth();
-    const firestore = useFirestore();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -58,42 +53,6 @@ export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }:
         }
 
         onAnalysisStart();
-        try {
-            const result = await generateRealTimeTrustScore(values);
-
-            const reviewsCol = collection(firestore, `users/${user.uid}/reviews`);
-            const newDocRef = doc(reviewsCol);
-
-            const newHistoryItem: Omit<HistoryItem, 'id' | 'timestamp'> = {
-                userId: user.uid,
-                reviewText: values.reviewText,
-                productOrService: values.productOrService,
-                platform: values.platform,
-                trustScore: result.trustScore,
-                predictedLabel: result.predictedLabel,
-                explanation: result.explanation,
-            };
-            
-            setDocumentNonBlocking(newDocRef, { ...newHistoryItem, timestamp: serverTimestamp() }, { merge: false });
-
-            onAnalysisComplete({
-                ...newHistoryItem,
-                id: newDocRef.id,
-                timestamp: new Date()
-            });
-
-            form.reset();
-
-        } catch (error) {
-            console.error("Analysis failed:", error);
-            const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.';
-            toast({
-                variant: 'destructive',
-                title: 'Analysis Failed',
-                description: errorMessage,
-            });
-            onAnalysisComplete(null);
-        }
     };
     
     return (

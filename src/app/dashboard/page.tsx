@@ -33,7 +33,21 @@ export default function DashboardPage() {
 
   const handleAnalysisStart = () => {
     setIsAnalyzing(true);
-    setSelectedHistoryItem(null);
+    // Mock analysis
+    setTimeout(() => {
+        const mockResult: HistoryItem = {
+            id: 'mock-id-' + Date.now(),
+            trustScore: 0.88,
+            predictedLabel: 'genuine',
+            explanation: 'This is a mock analysis. The AI features are currently disabled.',
+            productOrService: 'Sample Product',
+            platform: 'Sample Platform',
+            reviewText: 'This is a sample review text.',
+            userId: user?.uid || 'unknown',
+            timestamp: new Date(),
+        };
+        handleAnalysisComplete(mockResult);
+    }, 2000);
   }
 
   const handleAnalysisComplete = (result: HistoryItem | null) => {
@@ -54,7 +68,7 @@ export default function DashboardPage() {
       <div className="md:col-span-2">
         <ReviewForm 
           onAnalysisStart={handleAnalysisStart}
-          onAnalysisComplete={handleAnalysisComplete}
+          onAnalysisComplete={() => {}} // Simplified, logic is internal now
           isAnalyzing={isAnalyzing}
         />
         {isAnalyzing ? (

@@ -9,16 +9,14 @@ import {
     signOut,
     updateProfile,
     type User as FirebaseUser,
-    type Auth,
 } from 'firebase/auth';
-import { useFirebase } from '@/firebase'; // Use the hook from the provider
+import { useFirebase } from '@/firebase'; 
 import { Loader2 } from 'lucide-react';
 
 interface User {
     uid: string;
     name: string | null;
     email: string | null;
-    role: string;
 }
 
 interface AuthContextType {
@@ -37,35 +35,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
     
-    // Get auth instance from the central FirebaseProvider
     const { auth } = useFirebase();
 
     useEffect(() => {
         if (!auth) {
-            // This can happen briefly on initial load before FirebaseProvider initializes.
-            // We wait for the auth object to be available.
             return;
         }
 
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
-                try {
-                    // Force refresh the token to get latest custom claims.
-                    const tokenResult = await firebaseUser.getIdTokenResult(true); 
-                    const userRole = tokenResult.claims.role || 'user';
-
-                    const mappedUser = {
-                        uid: firebaseUser.uid,
-                        name: firebaseUser.displayName,
-                        email: firebaseUser.email,
-                        role: userRole,
-                    };
-                    setUser(mappedUser);
-
-                } catch (error) {
-                    console.error("Error getting user token result:", error);
-                    setUser(null);
-                }
+                const mappedUser = {
+                    uid: firebaseUser.uid,
+                    name: firebaseUser.displayName,
+                    email: firebaseUser.email,
+                };
+                setUser(mappedUser);
             } else {
                 setUser(null);
             }
@@ -73,16 +57,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
 
         return () => unsubscribe();
-    }, [auth]); // Rerun effect if auth instance changes
+    }, [auth]);
 
     const mapFirebaseUser = async (firebaseUser: FirebaseUser): Promise<User> => {
-        const tokenResult = await firebaseUser.getIdTokenResult(true);
-        const role = tokenResult.claims.role || 'user';
         return {
             uid: firebaseUser.uid,
             name: firebaseUser.displayName,
             email: firebaseUser.email,
-            role,
         };
     };
 
@@ -99,16 +80,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName: name });
         
-        // After signup, Firebase doesn't immediately reflect the profile update in the user object.
-        // We will create the user object manually for immediate UI consistency.
         const newUser: User = {
              uid: userCredential.user.uid,
              name: name,
              email: userCredential.user.email,
-             role: 'user' // Default role on signup
         };
         setUser(newUser);
-        // We still call mapFirebaseUser to ensure we get any other default claims
         return await mapFirebaseUser(userCredential.user);
     };
 
