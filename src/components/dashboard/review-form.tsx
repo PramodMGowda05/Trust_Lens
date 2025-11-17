@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Wand2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { HistoryItem } from '@/lib/types';
-import { useAuth } from '@/context/auth-context';
+import { analyzeReview } from "@/ai/flows/analyze-review-flow";
 
 const formSchema = z.object({
     reviewText: z.string().min(20, "Review text must be at least 20 characters.").max(5000),
@@ -28,12 +28,8 @@ type ReviewFormProps = {
     isAnalyzing: boolean;
 };
 
-// IMPORTANT: Replace with your actual backend URL in production
-const API_URL = "http://localhost:5001/api/v1/predict";
-
 export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }: ReviewFormProps) {
     const { toast } = useToast();
-    const { user, getIdToken } = useAuth();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -46,60 +42,29 @@ export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }:
     });
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
-        if (!user) {
-            toast({
-                variant: 'destructive',
-                title: 'Authentication Error',
-                description: 'You must be logged in to analyze a review.',
-            });
-            return;
-        }
-
         onAnalysisStart();
         
         try {
-            const token = await getIdToken();
-            if (!token) {
-                throw new Error("Unable to retrieve authentication token.");
-            }
-
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    text: values.reviewText,
-                    lang: values.language || 'en',
-                    metadata: {
-                        // You can add more metadata here in the future
-                    }
-                }),
+            const result = await analyzeReview({
+                reviewText: values.reviewText,
+                language: values.language || 'en',
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+            if (!result) {
+                throw new Error("The analysis returned no result.");
             }
 
-            const result = await response.json();
-
-            // The backend returns explanation as a dictionary, we need the main point.
-            // This can be made more sophisticated later.
-            const explanationText = result.explanation?.shap || "No explanation provided by the model.";
-
             onAnalysisComplete({
-                trustScore: result.trust_score,
-                predictedLabel: result.label,
-                explanation: typeof explanationText === 'string' ? explanationText : JSON.stringify(explanationText),
+                trustScore: result.trustScore,
+                predictedLabel: result.predictedLabel,
+                explanation: result.explanation,
                 productOrService: values.productOrService,
                 platform: values.platform,
                 reviewText: values.reviewText,
             });
             
         } catch (error) {
-            console.error("Analysis API error:", error);
+            console.error("Analysis AI error:", error);
             const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
             toast({
                 variant: 'destructive',

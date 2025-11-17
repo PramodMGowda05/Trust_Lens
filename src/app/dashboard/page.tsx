@@ -46,13 +46,10 @@ export default function DashboardPage() {
       const reviewsCollection = collection(firestore, `users/${user.uid}/reviews`);
       addDocumentNonBlocking(reviewsCollection, newReview)
         .then(docRef => {
-            // The local state update will be handled by the onSnapshot listener from useCollection
-            // but we can set the selected item to show the result immediately.
-            // We'll create a temporary full item for immediate display.
             const displayItem: HistoryItem = {
                 ...newReview,
                 id: docRef.id,
-                timestamp: new Date() // Use local date for immediate display
+                timestamp: new Date() 
             };
             setSelectedHistoryItem(displayItem);
              toast({
