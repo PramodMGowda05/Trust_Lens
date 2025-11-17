@@ -24,13 +24,16 @@ const formSchema = z.object({
 
 type ReviewFormProps = {
     onAnalysisStart: () => void;
-    onAnalysisComplete: (result: HistoryItem | null) => void;
+    onAnalysisComplete: (result: Omit<HistoryItem, 'id' | 'userId' | 'timestamp'> | null) => void;
     isAnalyzing: boolean;
 };
 
+// IMPORTANT: Replace with your actual backend URL in production
+const API_URL = "http://localhost:5001/api/v1/predict";
+
 export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }: ReviewFormProps) {
     const { toast } = useToast();
-    const { user } = useAuth();
+    const { user, getIdToken } = useAuth();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -53,6 +56,58 @@ export function ReviewForm({ onAnalysisStart, onAnalysisComplete, isAnalyzing }:
         }
 
         onAnalysisStart();
+        
+        try {
+            const token = await getIdToken();
+            if (!token) {
+                throw new Error("Unable to retrieve authentication token.");
+            }
+
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    text: values.reviewText,
+                    lang: values.language || 'en',
+                    metadata: {
+                        // You can add more metadata here in the future
+                    }
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            // The backend returns explanation as a dictionary, we need the main point.
+            // This can be made more sophisticated later.
+            const explanationText = result.explanation?.shap || "No explanation provided by the model.";
+
+            onAnalysisComplete({
+                trustScore: result.trust_score,
+                predictedLabel: result.label,
+                explanation: typeof explanationText === 'string' ? explanationText : JSON.stringify(explanationText),
+                productOrService: values.productOrService,
+                platform: values.platform,
+                reviewText: values.reviewText,
+            });
+            
+        } catch (error) {
+            console.error("Analysis API error:", error);
+            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+            toast({
+                variant: 'destructive',
+                title: 'Analysis Failed',
+                description: errorMessage,
+            });
+            onAnalysisComplete(null);
+        }
     };
     
     return (

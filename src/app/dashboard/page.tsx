@@ -9,8 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/context/auth-context';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
+import { collection, query, orderBy, limit, serverTimestamp } from 'firebase/firestore';
 
 
 export default function DashboardPage() {
@@ -33,30 +33,48 @@ export default function DashboardPage() {
 
   const handleAnalysisStart = () => {
     setIsAnalyzing(true);
-    // Mock analysis
-    setTimeout(() => {
-        const mockResult: HistoryItem = {
-            id: 'mock-id-' + Date.now(),
-            trustScore: 0.88,
-            predictedLabel: 'genuine',
-            explanation: 'This is a mock analysis. The AI features are currently disabled.',
-            productOrService: 'Sample Product',
-            platform: 'Sample Platform',
-            reviewText: 'This is a sample review text.',
-            userId: user?.uid || 'unknown',
-            timestamp: new Date(),
-        };
-        handleAnalysisComplete(mockResult);
-    }, 2000);
   }
 
-  const handleAnalysisComplete = (result: HistoryItem | null) => {
-    if (result) {
-      setSelectedHistoryItem(result);
-      toast({
-        title: 'Analysis Complete',
-        description: `Review classified as ${result.predictedLabel}.`,
-      });
+  const handleAnalysisComplete = (result: Omit<HistoryItem, 'id' | 'userId' | 'timestamp'> | null) => {
+    if (result && user) {
+      const newReview = {
+        ...result,
+        userId: user.uid,
+        timestamp: serverTimestamp(),
+      };
+      
+      const reviewsCollection = collection(firestore, `users/${user.uid}/reviews`);
+      addDocumentNonBlocking(reviewsCollection, newReview)
+        .then(docRef => {
+            // The local state update will be handled by the onSnapshot listener from useCollection
+            // but we can set the selected item to show the result immediately.
+            // We'll create a temporary full item for immediate display.
+            const displayItem: HistoryItem = {
+                ...newReview,
+                id: docRef.id,
+                timestamp: new Date() // Use local date for immediate display
+            };
+            setSelectedHistoryItem(displayItem);
+             toast({
+                title: 'Analysis Complete',
+                description: `Review classified as ${result.predictedLabel}.`,
+            });
+        })
+        .catch(e => {
+            console.error("Error saving review:", e);
+            toast({
+                variant: 'destructive',
+                title: 'Error Saving Result',
+                description: 'Could not save the analysis result to your history.',
+            });
+        });
+
+    } else if (!result) {
+        toast({
+            variant: 'destructive',
+            title: 'Analysis Failed',
+            description: 'Something went wrong during the analysis.',
+        });
     }
      setIsAnalyzing(false);
   };
@@ -68,7 +86,7 @@ export default function DashboardPage() {
       <div className="md:col-span-2">
         <ReviewForm 
           onAnalysisStart={handleAnalysisStart}
-          onAnalysisComplete={() => {}} // Simplified, logic is internal now
+          onAnalysisComplete={handleAnalysisComplete}
           isAnalyzing={isAnalyzing}
         />
         {isAnalyzing ? (
